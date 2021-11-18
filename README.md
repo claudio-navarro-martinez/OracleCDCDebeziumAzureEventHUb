@@ -112,11 +112,17 @@ CREATE USER c##dbzuser IDENTIFIED BY dbz
   GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO cdbzuser;
 
 ======================= kafka directory ==================
-claudio-Latitude-E7470:
 /home/claudio/kafka.azure/kafka_2.12-3.0.0/config
+connect-distributed.properties
+mydbz-oracle-connector.properties   
 
-=================================
- ====== connect-distributed.properties
+Dentro de libs creamos debezium-connector-oracle y copiamos los jar que vienen en el tgz, tambien ponemos el ojdbc8.jar que lo extraemos del CLI (no hace falta tener LD_LIBRARY_PATH ni nada). Recordar poner plugin.path=/home/claudio/kafka_2.12-3.0.0/libs
+
+/home/claudio/kafka_2.12-3.0.0/libs   
+drwxrwxr-x 2 claudio claudio     4096 Nov 17 14:12 debezium-connector-oracle
+-rw-r--r-- 1 claudio claudio  4210517 Nov 17 14:29 ojdbc8.jar
+
+=================================  connect-distributed.properties
 bootstrap.servers=cnmeh2.servicebus.windows.net:9093 
 group.id=dbzconnect8-cluster-group
 
@@ -141,15 +147,15 @@ offset.flush.interval.ms=1000
 # required EH Kafka security settings
 security.protocol=SASL_SSL
 sasl.mechanism=PLAIN
-sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=";
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfI";
 
 producer.security.protocol=SASL_SSL
 producer.sasl.mechanism=PLAIN
-producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=";
+producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi";
 
 consumer.security.protocol=SASL_SSL
 consumer.sasl.mechanism=PLAIN
-consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=";
+consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi";
 
 topic.creation.enable = true
 plugin.path=/home/claudio/kafka_2.12-3.0.0/libs
@@ -161,7 +167,7 @@ internal.key.converter=org.apache.kafka.connect.json.JsonConverter
 ==========================================
 ./bin/connect-distributed.sh ./config/connect-distributed.properties
 
-===========================================
+=========================================== mydbz-oracle-connector.properties
 {
     "name": "dbz8-oracle-connector",
     "config": {
@@ -180,10 +186,10 @@ internal.key.converter=org.apache.kafka.connect.json.JsonConverter
         "snapshot.mode" : "initial",
         "transforms.unwrap.delete.handling.mode": "rewrite",
         "topic.creation.default.partitions": "1",
-        "database.history.consumer.sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=\";",
+        "database.history.consumer.sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxx";",
         "database.history.consumer.security.protocol": "SASL_SSL",
         "database.history.consumer.sasl.mechanism": "PLAIN",
-        "database.history.producer.sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=\";",
+        "database.history.producer.sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$ConnectionString\" password=\"Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxx";",
         "database.history.producer.security.protocol": "SASL_SSL",
         "database.history.producer.sasl.mechanism": "PLAIN",
         "topic.creation.default.replication.factor": "3",
@@ -224,12 +230,12 @@ delete connector
 
 kafkacat -b cnmeh2.servicebus.windows.net:9093 -X security.protocol=sasl_ssl -X sasl.mechanism=PLAIN 
       -X sasl.username='$ConnectionString' 
-      -X sasl.password='Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=' 
+      -X sasl.password='Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxx' 
       -L
 
 kafkacat -b cnmeh2.servicebus.windows.net:9093 -X security.protocol=sasl_ssl -X sasl.mechanism=PLAIN \
       -X sasl.username='$ConnectionString' \
-      -X sasl.password='Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=mwz/SQsJyfrfi+q1cIIMOC+DSkz5HXHNp8vcPayzMTQ=' \
+      -X sasl.password='Endpoint=sb://cnmeh2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=xxxxx' \
       -C -t server1.ot.employees -o beggining
 
 
