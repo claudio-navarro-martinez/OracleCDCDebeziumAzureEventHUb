@@ -1,0 +1,73 @@
+debezium.postgres.cdc.kafka.EH
+
+https://dzone.com/articles/change-data-capture-architecture-using-debezium-po
+* check the firewall rules 
+
+sql -h postgrescnm1.postgres.database.azure.com -p 5432 -U pgadmin@postgrescnm1 -W -d dbcnm1 --set=sslmode=require
+
+#####connect-distributed.properties
+bootstrap.servers=eventhubcnm2.servicebus.windows.net:9093 
+group.id=connect-cluster-group
+
+# connect internal topic names, auto-created if not exists
+config.storage.topic=dbz9-connect-cluster-configs
+offset.storage.topic=dbz9-connect-cluster-offsets
+status.storage.topic=dbz9-connect-cluster-status
+
+# internal topic replication factors - auto 3x replication in Azure Storage
+config.storage.replication.factor=1
+offset.storage.replication.factor=1
+status.storage.replication.factor=1
+
+key.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+
+key.converter.schemas.enable=true
+value.converter.schemas.enable=true
+
+offset.flush.interval.ms=1000
+
+# required EH Kafka security settings
+security.protocol=SASL_SSL
+sasl.mechanism=PLAIN
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://eventhubcnm2.servicebus.windows.net/;SharedAccessKeyNam
+e=RootManageSharedAccessKey;SharedAccessKey==";
+
+producer.security.protocol=SASL_SSL
+producer.sasl.mechanism=PLAIN
+producer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://eventhubcnm2.servicebus.windows.net/;SharedAcc
+essKeyName=RootManageSharedAccessKey;SharedAccessKey==";
+
+consumer.security.protocol=SASL_SSL
+consumer.sasl.mechanism=PLAIN
+consumer.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$ConnectionString" password="Endpoint=sb://eventhubcnm2.servicebus.windows.net/;SharedAcc
+essKeyName=RootManageSharedAccessKey;SharedAccessKey==";
+
+topic.creation.enable = true
+plugin.path=/home/claudio/kafka_2.12-3.0.0/libs
+internal.value.converter=org.apache.kafka.connect.json.JsonConverter
+internal.key.converter=org.apache.kafka.connect.json.JsonConverter
+
+###connector file
+{
+    "name": "pg-connector",
+    "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "database.hostname": "postgrescnm1.postgres.database.azure.com",
+        "database.port": "5432",
+        "database.user": "pgadmin@postgrescnm1",
+        "database.password": "Austral1a",
+        "database.dbname": "dbcnm1",
+        "database.server.name": "my-server",
+        "plugin.name": "wal2json",
+        "table.whitelist": "public.t1"
+    }
+}
+kafkacat -b eventhubcnm2.servicebus.windows.net:9093 -X security.protocol=sasl_ssl -X sasl.mechanism=PLAIN -X sasl.username='$ConnectionString' \
+-X sasl.password='Endpoint=sb://eventhubcnm2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=dfdfdfdf=' \
+-C -t my-server.public.t1 -o beggining
+
+curl -i -X DELETE localhost:8083/connectors/pg-connector/
+curl -s http://localhost:8083/connectors/pg-connector/status
+curl -X POST -H "Content-Type: application/json" --data @mydbz_postgres-connector.properties http://localhost:8083/connectors
+
